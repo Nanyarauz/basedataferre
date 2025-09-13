@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Filtro por cualquier columna</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #buscador, #btnBuscar, #btnReset {
+      margin: 10px 5px 10px 0;
+      padding: 6px;
+      font-size: 14px;
+    }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+    #btnBuscar, #btnReset { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>📊 Cargar y Filtrar Excel por fila completa</h2>
+  <input type="file" id="excelFile" accept=".xlsx, .xls"><br>
+  <input type="text" id="buscador" placeholder="Escribe texto a filtrar">
+  <button id="btnBuscar">Buscar</button>
+  <button id="btnReset">Mostrar todo</button>
+
+  <div id="output"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    let table;
+
+    document.getElementById('excelFile').addEventListener('change', function(e) {
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(e.target.files[0]);
+
+      reader.onload = function(event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        // Construir tabla
+        let html = "<table id='excelTable'><thead><tr>";
+        json[0].forEach(col => html += `<th>${col}</th>`);
+        html += "</tr></thead><tbody>";
+        for (let i = 1; i < json.length; i++) {
+          html += "<tr>";
+          json[i].forEach(cell => html += `<td>${cell || ""}</td>`);
+          html += "</tr>";
+        }
+        html += "</tbody></table>";
+
+        document.getElementById('output').innerHTML = html;
+        table = document.getElementById('excelTable');
+      }
+    });
+
+    // Botón Buscar: filtrar toda la fila
+    document.getElementById('btnBuscar').addEventListener('click', function() {
+      const filtro = document.getElementById('buscador').value.toLowerCase().trim();
+      if (!table) return;
+
+      const filas = table.getElementsByTagName('tr');
+      for (let i = 1; i < filas.length; i++) {
+        const celdas = filas[i].getElementsByTagName('td');
+        let coincide = false;
+
+        // Revisar todas las celdas de la fila
+        for (let celda of celdas) {
+          if (celda.textContent.toLowerCase().includes(filtro)) {
+            coincide = true;
+            break;
+          }
+        }
+
+        filas[i].style.display = coincide ? "" : "none";
+      }
+    });
+
+    // Botón Mostrar todo
+    document.getElementById('btnReset').addEventListener('click', function() {
+      document.getElementById('buscador').value = "";
+      if (!table) return;
+      const filas = table.getElementsByTagName('tr');
+      for (let i = 1; i < filas.length; i++) filas[i].style.display = "";
+    });
+  </script>
+</body>
+</html>
+
+
